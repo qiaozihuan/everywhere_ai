@@ -1,0 +1,1023 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DeepSeek API 余额查看器</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        /* ===== 样式与原版基本一致，仅微调 ===== */
+        :root {
+            --bg-primary: #0b0e1a;
+            --bg-secondary: #13172b;
+            --bg-card: rgba(20, 26, 50, 0.75);
+            --bg-card-hover: rgba(30, 38, 70, 0.85);
+            --text-primary: #f0f2ff;
+            --text-secondary: #9aa3c5;
+            --text-muted: #6b74a0;
+            --border-color: rgba(77, 107, 254, 0.2);
+            --shadow-color: rgba(77, 107, 254, 0.15);
+            --accent-blue: #4d6bfe;
+            --accent-purple: #7c5cfc;
+            --accent-cyan: #3dd4f5;
+            --accent-green: #34d399;
+            --accent-red: #f87171;
+            --accent-orange: #fb923c;
+            --gradient-main: linear-gradient(135deg, #4d6bfe, #7c5cfc);
+            --gradient-glow: radial-gradient(ellipse at 50% 0%, rgba(77, 107, 254, 0.15), transparent 70%);
+            --radius: 16px;
+            --radius-sm: 10px;
+            --transition: 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        [data-theme="light"] {
+            --bg-primary: #f0f4ff;
+            --bg-secondary: #e8edff;
+            --bg-card: rgba(255, 255, 255, 0.85);
+            --bg-card-hover: rgba(255, 255, 255, 0.95);
+            --text-primary: #0b0e1a;
+            --text-secondary: #3d4670;
+            --text-muted: #7a85b0;
+            --border-color: rgba(77, 107, 254, 0.15);
+            --shadow-color: rgba(77, 107, 254, 0.08);
+            --gradient-glow: radial-gradient(ellipse at 50% 0%, rgba(77, 107, 254, 0.08), transparent 70%);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            transition: background var(--transition), color var(--transition);
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: var(--gradient-glow);
+            pointer-events: none;
+            z-index: 0;
+            animation: pulseGlow 8s ease-in-out infinite alternate;
+        }
+
+        @keyframes pulseGlow {
+            0% { opacity: 0.6; transform: scale(1); }
+            100% { opacity: 1; transform: scale(1.05); }
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 560px;
+        }
+
+        .card {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 40px 36px 36px;
+            box-shadow: 0 25px 60px var(--shadow-color);
+            transition: background var(--transition), border-color var(--transition), box-shadow var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--gradient-main);
+            opacity: 0.6;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 28px;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 44px;
+            height: 44px;
+            background: var(--gradient-main);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            color: #fff;
+            flex-shrink: 0;
+        }
+
+        .logo-text h1 {
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+            background: var(--gradient-main);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .logo-text span {
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-weight: 400;
+            -webkit-text-fill-color: var(--text-secondary);
+            display: block;
+            margin-top: 1px;
+        }
+
+        .theme-toggle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 1px solid var(--border-color);
+            background: transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            transition: all var(--transition);
+            flex-shrink: 0;
+        }
+
+        .theme-toggle:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--accent-blue);
+            color: var(--text-primary);
+            transform: rotate(15deg);
+        }
+
+        .input-section {
+            margin-bottom: 20px;
+        }
+
+        .input-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+            background: var(--bg-primary);
+            border: 1.5px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            transition: all var(--transition);
+        }
+
+        .input-wrapper:focus-within {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 4px rgba(77, 107, 254, 0.12);
+        }
+
+        .input-wrapper .icon {
+            padding: 0 0 0 16px;
+            color: var(--text-muted);
+            font-size: 15px;
+            transition: color var(--transition);
+        }
+
+        .input-wrapper:focus-within .icon {
+            color: var(--accent-blue);
+        }
+
+        .input-wrapper input {
+            flex: 1;
+            padding: 14px 12px;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text-primary);
+            font-size: 15px;
+            font-family: var(--font-sans);
+            letter-spacing: 0.3px;
+            min-width: 0;
+        }
+
+        .input-wrapper input::placeholder {
+            color: var(--text-muted);
+            font-weight: 400;
+            letter-spacing: 0;
+            font-size: 14px;
+        }
+
+        .input-wrapper .clear-btn {
+            padding: 0 14px 0 4px;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 16px;
+            transition: color var(--transition);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .input-wrapper .clear-btn.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .input-wrapper .clear-btn:hover {
+            color: var(--text-secondary);
+        }
+
+        .input-wrapper .toggle-vis {
+            padding: 0 16px 0 4px;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 15px;
+            transition: color var(--transition);
+        }
+
+        .input-wrapper .toggle-vis:hover {
+            color: var(--text-secondary);
+        }
+
+        .actions {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 13px 20px;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 15px;
+            font-weight: 600;
+            font-family: var(--font-sans);
+            cursor: pointer;
+            transition: all var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--gradient-main);
+            color: #fff;
+            box-shadow: 0 4px 20px rgba(77, 107, 254, 0.3);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(77, 107, 254, 0.4);
+        }
+
+        .btn-primary:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: var(--bg-card-hover);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+            flex: 0.4;
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border-color: var(--text-muted);
+        }
+
+        .btn .spinner {
+            width: 18px;
+            height: 18px;
+            border: 2.5px solid rgba(255, 255, 255, 0.25);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            display: none;
+        }
+
+        .btn .spinner.active {
+            display: inline-block;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .result-area {
+            min-height: 80px;
+            margin-bottom: 20px;
+        }
+
+        .result-card {
+            padding: 18px 20px;
+            border-radius: var(--radius-sm);
+            border: 1.5px solid transparent;
+            display: none;
+            animation: fadeSlideIn 0.4s ease-out;
+        }
+
+        .result-card.visible {
+            display: block;
+        }
+
+        @keyframes fadeSlideIn {
+            0% { opacity: 0; transform: translateY(8px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        .result-card.success {
+            border-color: rgba(52, 211, 153, 0.3);
+            background: rgba(52, 211, 153, 0.06);
+        }
+
+        .result-card.error {
+            border-color: rgba(248, 113, 113, 0.3);
+            background: rgba(248, 113, 113, 0.06);
+        }
+
+        .result-card.info {
+            border-color: rgba(77, 107, 254, 0.25);
+            background: rgba(77, 107, 254, 0.05);
+        }
+
+        .result-card .result-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 6px;
+        }
+
+        .result-card .result-header i {
+            font-size: 18px;
+        }
+
+        .result-card.success .result-header i {
+            color: var(--accent-green);
+        }
+        .result-card.error .result-header i {
+            color: var(--accent-red);
+        }
+        .result-card.info .result-header i {
+            color: var(--accent-blue);
+        }
+
+        .result-card .result-title {
+            font-weight: 600;
+            font-size: 15px;
+        }
+
+        .result-card .result-detail {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.8;
+            margin-top: 4px;
+        }
+
+        .result-card .result-detail .balance-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 14px;
+        }
+
+        .result-card .result-detail .balance-row:last-child {
+            border-bottom: none;
+        }
+
+        .result-card .result-detail .balance-row .label {
+            color: var(--text-muted);
+        }
+
+        .result-card .result-detail .balance-row .value {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .result-card .result-detail .balance-row .value.green {
+            color: var(--accent-green);
+        }
+
+        .result-card .result-detail .balance-total {
+            font-size: 28px;
+            font-weight: 700;
+            text-align: center;
+            padding: 10px 0 16px 0;
+            color: var(--accent-green);
+        }
+
+        .result-card .result-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .result-card .result-meta .meta-item {
+            font-size: 12px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .result-card .result-meta .meta-item i {
+            font-size: 12px;
+        }
+
+        .info-box {
+            background: var(--bg-primary);
+            border-radius: var(--radius-sm);
+            padding: 16px 18px;
+            border: 1px solid var(--border-color);
+            transition: background var(--transition), border-color var(--transition);
+        }
+
+        .info-box .info-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .info-box .info-title i {
+            color: var(--accent-blue);
+        }
+
+        .info-box .info-text {
+            font-size: 13px;
+            color: var(--text-muted);
+            line-height: 1.7;
+        }
+
+        .info-box .info-text a {
+            color: var(--accent-blue);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color var(--transition);
+        }
+
+        .info-box .info-text a:hover {
+            color: var(--accent-purple);
+            text-decoration: underline;
+        }
+
+        .footer {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: var(--text-muted);
+            letter-spacing: 0.3px;
+        }
+
+        .footer a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: color var(--transition);
+        }
+
+        .footer a:hover {
+            color: var(--accent-blue);
+        }
+
+        .status-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 6px;
+            animation: pulseDot 1.8s ease-in-out infinite;
+        }
+
+        .status-dot.green {
+            background: var(--accent-green);
+        }
+        .status-dot.red {
+            background: var(--accent-red);
+        }
+        .status-dot.orange {
+            background: var(--accent-orange);
+        }
+
+        @keyframes pulseDot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.85); }
+        }
+
+        @media (max-width: 480px) {
+            .card { padding: 28px 18px 24px; }
+            .logo-text h1 { font-size: 17px; }
+            .logo-icon { width: 38px; height: 38px; font-size: 18px; }
+            .input-wrapper input { font-size: 14px; padding: 12px 8px; }
+            .btn { font-size: 14px; padding: 11px 14px; }
+            .result-card { padding: 14px 16px; }
+            .result-card .result-detail .balance-total { font-size: 24px; }
+        }
+
+        @media (max-width: 380px) {
+            .actions { flex-direction: column; }
+            .btn-secondary { flex: 1; }
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        * {
+            transition: background var(--transition), color var(--transition), border-color var(--transition), box-shadow var(--transition);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="card">
+
+            <!-- Header -->
+            <div class="header">
+                <div class="logo-area">
+                    <div class="logo-icon">
+                        <i class="fas fa-wallet"></i>
+                    </div>
+                    <div class="logo-text">
+                        <h1>DeepSeek 余额</h1>
+                        <span>API 余额实时查询</span>
+                    </div>
+                </div>
+                <button class="theme-toggle" id="themeToggle" aria-label="切换主题">
+                    <i class="fas fa-moon" id="themeIcon"></i>
+                </button>
+            </div>
+
+            <!-- Input -->
+            <div class="input-section">
+                <label class="input-label" for="apiKeyInput">
+                    <i class="fas fa-key" style="margin-right:6px;color:var(--accent-blue);"></i>API Key
+                </label>
+                <div class="input-wrapper">
+                    <span class="icon"><i class="fas fa-lock"></i></span>
+                    <input
+                        type="password"
+                        id="apiKeyInput"
+                        placeholder="sk-... 粘贴你的 API Key"
+                        autocomplete="off"
+                        spellcheck="false"
+                    />
+                    <button class="toggle-vis" id="toggleVis" aria-label="显示/隐藏 Key">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    <button class="clear-btn" id="clearBtn" aria-label="清除输入">
+                        <i class="fas fa-times-circle"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="actions">
+                <button class="btn btn-primary" id="verifyBtn">
+                    <i class="fas fa-coins"></i>
+                    <span id="btnText">查询余额</span>
+                    <span class="spinner" id="btnSpinner"></span>
+                </button>
+                <button class="btn btn-secondary" id="clearStorageBtn" title="清除保存的 Key">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+            </div>
+
+            <!-- Result -->
+            <div class="result-area">
+                <div class="result-card" id="resultCard">
+                    <div class="result-header">
+                        <i class="fas fa-check-circle"></i>
+                        <span class="result-title" id="resultTitle">余额查询成功</span>
+                    </div>
+                    <div class="result-detail" id="resultDetail"></div>
+                    <div class="result-meta" id="resultMeta">
+                        <span class="meta-item"><i class="far fa-clock"></i> <span id="metaTime">--</span></span>
+                        <span class="meta-item"><i class="fas fa-tachometer-alt"></i> <span id="metaLatency">--</span></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Info -->
+            <div class="info-box">
+                <div class="info-title">
+                    <i class="fas fa-info-circle"></i> 余额说明
+                </div>
+                <div class="info-text">
+                    通过 DeepSeek 官方接口 <code>/user/balance</code> 实时查询[reference:14]。
+                    <br />
+                    <span style="display:inline-block;margin-top:6px;font-size:12px;color:var(--text-muted);">
+                        <i class="fas fa-shield-alt" style="color:var(--accent-green);"></i>
+                        API Key 仅存储在本地，仅用于查询余额，不会上传到任何第三方。
+                    </span>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="footer">
+                <span>DeepSeek API · </span>
+                <a href="https://api-docs.deepseek.com/zh-cn/api/get-user-balance/" target="_blank" rel="noopener noreferrer">余额 API 文档</a>
+                <span> · </span>
+                <a href="https://platform.deepseek.com/" target="_blank" rel="noopener noreferrer">控制台</a>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            'use strict';
+
+            // ----- DOM Refs -----
+            const apiInput = document.getElementById('apiKeyInput');
+            const verifyBtn = document.getElementById('verifyBtn');
+            const btnText = document.getElementById('btnText');
+            const btnSpinner = document.getElementById('btnSpinner');
+            const clearBtn = document.getElementById('clearBtn');
+            const toggleVis = document.getElementById('toggleVis');
+            const resultCard = document.getElementById('resultCard');
+            const resultTitle = document.getElementById('resultTitle');
+            const resultDetail = document.getElementById('resultDetail');
+            const resultMeta = document.getElementById('resultMeta');
+            const metaTime = document.getElementById('metaTime');
+            const metaLatency = document.getElementById('metaLatency');
+            const clearStorageBtn = document.getElementById('clearStorageBtn');
+            const themeToggle = document.getElementById('themeToggle');
+            const themeIcon = document.getElementById('themeIcon');
+
+            // ----- State -----
+            const STORAGE_KEY = 'deepseek_api_key';
+            const THEME_KEY = 'deepseek_theme';
+            let isVerifying = false;
+            let currentTheme = 'dark';
+
+            // ----- Helpers -----
+            function formatTime(ts) {
+                const d = new Date(ts);
+                return d.toLocaleString('zh-CN', { hour12: false });
+            }
+
+            function formatLatency(ms) {
+                if (ms < 1000) return ms.toFixed(0) + ' ms';
+                return (ms / 1000).toFixed(2) + ' s';
+            }
+
+            function showResult(type, title, detail, meta) {
+                resultCard.className = 'result-card visible ' + type;
+                resultTitle.textContent = title;
+                resultDetail.innerHTML = detail;
+
+                if (meta) {
+                    resultMeta.style.display = 'flex';
+                    if (meta.time) metaTime.textContent = meta.time;
+                    if (meta.latency) metaLatency.textContent = meta.latency;
+                } else {
+                    resultMeta.style.display = 'none';
+                }
+            }
+
+            function setVerifying(state) {
+                isVerifying = state;
+                verifyBtn.disabled = state;
+                btnText.textContent = state ? '查询中...' : '查询余额';
+                btnSpinner.classList.toggle('active', state);
+            }
+
+            function updateClearBtn() {
+                clearBtn.classList.toggle('visible', apiInput.value.length > 0);
+            }
+
+            function clearInput() {
+                apiInput.value = '';
+                updateClearBtn();
+                apiInput.focus();
+                resultCard.className = 'result-card';
+            }
+
+            function toggleVisibility() {
+                const isPassword = apiInput.type === 'password';
+                apiInput.type = isPassword ? 'text' : 'password';
+                const icon = toggleVis.querySelector('i');
+                icon.className = isPassword ? 'fas fa-eye-slash' : 'fas fa-eye';
+            }
+
+            // ----- 核心：查询余额 -----
+            async function fetchBalance(key) {
+                const startTime = performance.now();
+                try {
+                    const response = await fetch('https://api.deepseek.com/user/balance', {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': 'Bearer ' + key.trim(),
+                            'Accept': 'application/json'
+                        }
+                    });
+
+                    const latency = performance.now() - startTime;
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        return {
+                            success: true,
+                            status: response.status,
+                            latency: latency,
+                            data: data
+                        };
+                    } else {
+                        let errorMsg = '';
+                        try {
+                            const errData = await response.json();
+                            errorMsg = errData.error?.message || errData.message || JSON.stringify(errData);
+                        } catch (_) {
+                            errorMsg = response.statusText || '未知错误';
+                        }
+                        return {
+                            success: false,
+                            status: response.status,
+                            latency: latency,
+                            error: errorMsg
+                        };
+                    }
+                } catch (err) {
+                    const latency = performance.now() - startTime;
+                    return {
+                        success: false,
+                        status: 0,
+                        latency: latency,
+                        error: err.message || '网络请求失败'
+                    };
+                }
+            }
+
+            // ----- 渲染余额 -----
+            function renderBalance(result) {
+                const data = result.data;
+                const isAvailable = data.is_available;
+                const infos = data.balance_infos || [];
+
+                if (!isAvailable) {
+                    return {
+                        type: 'error',
+                        title: '余额不可用',
+                        detail: '当前账户余额不可用于 API 调用，请检查账户状态。[reference:15]'
+                    };
+                }
+
+                if (infos.length === 0) {
+                    return {
+                        type: 'info',
+                        title: '未查询到余额',
+                        detail: 'API 返回成功，但未包含余额信息。'
+                    };
+                }
+
+                const info = infos[0];
+                const currency = info.currency || 'CNY';
+                const total = parseFloat(info.total_balance || 0);
+                const granted = parseFloat(info.granted_balance || 0);
+                const topped = parseFloat(info.topped_up_balance || 0);
+
+                const symbol = currency === 'USD' ? '$' : '¥';
+
+                let detail = `
+                    <div class="balance-total">${symbol} ${total.toFixed(2)}</div>
+                    <div class="balance-row">
+                        <span class="label">总额</span>
+                        <span class="value green">${symbol} ${total.toFixed(2)}</span>
+                    </div>
+                    <div class="balance-row">
+                        <span class="label">充值余额</span>
+                        <span class="value">${symbol} ${topped.toFixed(2)}</span>
+                    </div>
+                    <div class="balance-row">
+                        <span class="label">赠送余额</span>
+                        <span class="value">${symbol} ${granted.toFixed(2)}</span>
+                    </div>
+                    <div class="balance-row" style="margin-top:4px;border-top:1px solid var(--border-color);padding-top:8px;">
+                        <span class="label">货币</span>
+                        <span class="value">${currency}</span>
+                    </div>
+                `;
+
+                return {
+                    type: 'success',
+                    title: `余额 ${symbol} ${total.toFixed(2)}`,
+                    detail: detail
+                };
+            }
+
+            // ----- 主查询逻辑 -----
+            async function handleVerify() {
+                const key = apiInput.value.trim();
+                if (!key) {
+                    showResult('error', '请输入 API Key', '请先在输入框中粘贴你的 DeepSeek API Key。');
+                    return;
+                }
+
+                if (!key.startsWith('sk-')) {
+                    showResult('info', '格式提醒', 'DeepSeek API Key 通常以 <code>sk-</code> 开头，请确认输入正确。');
+                    return;
+                }
+
+                setVerifying(true);
+                showResult('info', '查询中...', '正在请求 DeepSeek 余额接口 <code>/user/balance</code>[reference:16]...');
+
+                const result = await fetchBalance(key);
+
+                setVerifying(false);
+
+                const now = Date.now();
+
+                if (result.success) {
+                    // 保存 key
+                    try {
+                        localStorage.setItem(STORAGE_KEY, key);
+                    } catch (_) {}
+
+                    const rendered = renderBalance(result);
+                    showResult(rendered.type, rendered.title, rendered.detail, {
+                        time: formatTime(now),
+                        latency: formatLatency(result.latency)
+                    });
+                } else {
+                    let detail = '';
+                    if (result.status === 401) {
+                        detail = `
+                            ❌ 认证失败：API Key 无效或已过期。
+                            <br />
+                            请检查 Key 是否正确，或前往
+                            <a href="https://platform.deepseek.com/" target="_blank" style="color:var(--accent-blue);">
+                                控制台
+                            </a>
+                            重新生成。
+                        `;
+                    } else if (result.status === 429) {
+                        detail = `
+                            ⚠️ 请求过多：API 速率限制已触发。
+                            <br />
+                            请稍后再试。
+                        `;
+                    } else if (result.status === 0) {
+                        detail = `
+                            ⚠️ 网络错误：${result.error}
+                            <br />
+                            可能原因：网络不通、CORS 限制或 API 服务不可用。
+                        `;
+                    } else {
+                        detail = `
+                            ❌ 查询失败 (HTTP ${result.status})
+                            <br />
+                            ${result.error}
+                        `;
+                    }
+                    showResult('error', '查询失败', detail, {
+                        time: formatTime(now),
+                        latency: formatLatency(result.latency)
+                    });
+                }
+            }
+
+            // ----- Theme -----
+            function getPreferredTheme() {
+                try {
+                    const saved = localStorage.getItem(THEME_KEY);
+                    if (saved === 'light' || saved === 'dark') return saved;
+                } catch (_) {}
+                return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+            }
+
+            function setTheme(theme) {
+                currentTheme = theme;
+                document.documentElement.setAttribute('data-theme', theme);
+                themeIcon.className = theme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+                try {
+                    localStorage.setItem(THEME_KEY, theme);
+                } catch (_) {}
+            }
+
+            function toggleTheme() {
+                setTheme(currentTheme === 'dark' ? 'light' : 'dark');
+            }
+
+            // ----- Storage -----
+            function loadSavedKey() {
+                try {
+                    const saved = localStorage.getItem(STORAGE_KEY);
+                    if (saved) {
+                        apiInput.value = saved;
+                        updateClearBtn();
+                    }
+                } catch (_) {}
+            }
+
+            function clearStorage() {
+                try {
+                    localStorage.removeItem(STORAGE_KEY);
+                    clearInput();
+                    showResult('info', '已清除', '本地存储的 API Key 已删除。');
+                } catch (_) {
+                    showResult('error', '清除失败', '无法访问本地存储。');
+                }
+            }
+
+            // ----- Keyboard -----
+            function handleKeydown(e) {
+                if (e.key === 'Enter' && e.target === apiInput) {
+                    e.preventDefault();
+                    handleVerify();
+                }
+                if (e.key === 'Escape' && e.target === apiInput) {
+                    clearInput();
+                }
+            }
+
+            // ===== Init =====
+            function init() {
+                const initialTheme = getPreferredTheme();
+                setTheme(initialTheme);
+                loadSavedKey();
+
+                verifyBtn.addEventListener('click', handleVerify);
+                apiInput.addEventListener('input', updateClearBtn);
+                clearBtn.addEventListener('click', clearInput);
+                toggleVis.addEventListener('click', toggleVisibility);
+                clearStorageBtn.addEventListener('click', clearStorage);
+                themeToggle.addEventListener('click', toggleTheme);
+                apiInput.addEventListener('keydown', handleKeydown);
+
+                updateClearBtn();
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', init);
+            } else {
+                init();
+            }
+
+        })();
+    </script>
+
+</body>
+</html>
